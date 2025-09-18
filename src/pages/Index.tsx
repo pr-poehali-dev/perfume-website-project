@@ -64,11 +64,50 @@ const perfumes: Perfume[] = [
 const brands = [...new Set(perfumes.map(p => p.brand))];
 const families = [...new Set(perfumes.map(p => p.family))];
 
+interface CartItem {
+  id: number;
+  name: string;
+  brand: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
 export default function Index() {
   const [selectedBrand, setSelectedBrand] = useState<string>("Все");
   const [selectedFamily, setSelectedFamily] = useState<string>("Все");
   const [selectedPrice, setSelectedPrice] = useState<string>("Все");
   const [activeTab, setActiveTab] = useState("catalog");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCartMessage, setShowCartMessage] = useState<string>("");
+
+  const addToCart = (perfume: Perfume) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === perfume.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === perfume.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        return [...prevCart, {
+          id: perfume.id,
+          name: perfume.name,
+          brand: perfume.brand,
+          price: perfume.price,
+          image: perfume.image,
+          quantity: 1
+        }];
+      }
+    });
+    
+    setShowCartMessage(`${perfume.name} добавлен в корзину`);
+    setTimeout(() => setShowCartMessage(""), 3000);
+  };
+
+  const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const filteredPerfumes = perfumes.filter(perfume => {
     const brandMatch = selectedBrand === "Все" || perfume.brand === selectedBrand;
@@ -134,13 +173,25 @@ export default function Index() {
               <Button variant="outline" size="icon">
                 <Icon name="Heart" size={18} />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="relative">
                 <Icon name="ShoppingBag" size={18} />
+                {cartItemsCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary">
+                    {cartItemsCount}
+                  </Badge>
+                )}
               </Button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Cart Message */}
+      {showCartMessage && (
+        <div className="fixed top-20 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in">
+          {showCartMessage}
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -245,7 +296,11 @@ export default function Index() {
                         <span className="text-xl font-bold text-primary">
                           {perfume.price.toLocaleString()} ₽
                         </span>
-                        <Button size="sm" className="bg-primary hover:bg-primary/90">
+                        <Button 
+                          size="sm" 
+                          className="bg-primary hover:bg-primary/90"
+                          onClick={() => addToCart(perfume)}
+                        >
                           <Icon name="ShoppingCart" size={16} className="mr-1" />
                           В корзину
                         </Button>
